@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Camera Text Capture</title>
+</head>
+<body>
+  <video id="video" width="640" height="480" autoplay></video>
+  <script src="https://cdn.rawgit.com/naptha/tesseract.js/1.0.10/dist/tesseract.js"></script>
+  <script>
+    document.addEventListener('DOMContentLoaded', () => {
+      const video = document.getElementById('video');
+      let captureInterval;
+
+      function startCamera() {
+        navigator.mediaDevices.getUserMedia({ video: true })
+          .then((stream) => {
+            video.srcObject = stream;
+          })
+          .catch((error) => {
+            console.error('Error accessing camera:', error);
+          });
+      }
+
+      function stopCamera() {
+        const stream = video.srcObject;
+        const tracks = stream.getTracks();
+
+        tracks.forEach(track => track.stop());
+        video.srcObject = null;
+      }
+
+      function captureText() {
+        const canvas = document.createElement('canvas');
+        const context = canvas.getContext('2d');
+
+        canvas.width = video.videoWidth;
+        canvas.height = video.videoHeight;
+        context.drawImage(video, 0, 0, video.videoWidth, video.videoHeight);
+
+        Tesseract.recognize(
+          canvas,
+          'eng',
+          { logger: info => console.log(info) }
+        ).then(({ data: { text } }) => {
+          console.log('Captured Text:', text);
+        });
+      }
+
+      function startCaptureInterval(interval) {
+        captureInterval = setInterval(() => {
+          captureText();
+        }, interval);
+      }
+
+      function stopCaptureInterval() {
+        clearInterval(captureInterval);
+      }
+
+      // Example: Start camera and capture text every 6 minutes (360000 milliseconds)
+      startCamera();
+      startCaptureInterval(360000);
+
+      // Stop camera and capture interval after 30 minutes (1800000 milliseconds)
+      setTimeout(() => {
+        stopCamera();
+        stopCaptureInterval();
+      }, 1800000);
+    });
+  </script>
+</body>
+</html>
